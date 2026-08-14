@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1">
-<title>ENCORE — From the Tokyo night into her eye</title>
-<meta name="description" content="A continuous zoom from fireworks over Tokyo into the eye of a singer on stage at Japan National Stadium.">
+<title>ENCORE — From her eye out into the Tokyo night</title>
+<meta name="description" content="A continuous zoom out from the eye of a singer on stage at Japan National Stadium to fireworks over the city at night.">
 <style>
   :root{ --fg:#fff; --dim:rgba(255,255,255,.78); --faint:rgba(255,255,255,.45) }
   *{box-sizing:border-box;margin:0;padding:0}
@@ -110,9 +110,9 @@
 </div>
 <div id="scroller"><div id="track"></div></div>
 
-<div class="ui" id="title"><h1>ENCORE — From the Tokyo night into her eye</h1><p>One continuous shot, scrubbed by your scroll</p></div>
+<div class="ui" id="title"><h1>ENCORE — From her eye out into the Tokyo night</h1><p>One continuous shot, scrubbed by your scroll</p></div>
 <div class="ui" id="readout"><div id="scaleNum">—</div><div id="caption"></div></div>
-<div class="ui" id="hint">scroll to descend</div>
+<div class="ui" id="hint">scroll to pull away</div>
 <div id="bar"><div id="barFill"></div></div>
 
 <div id="gate">
@@ -138,8 +138,8 @@
    =========================================================== */
 const SRC_DESKTOP = "zoom.mp4";
 const SRC_MOBILE  = "zoom-mobile.mp4";
-const MARKS   = [{"p": 0.0, "meters": 492.0, "caption": "Fireworks over Tokyo at night"}, {"p": 0.03333, "meters": 478.87, "caption": ""}, {"p": 0.06667, "meters": 418.202, "caption": "Japan National Stadium"}, {"p": 0.1, "meters": 324.057, "caption": ""}, {"p": 0.13333, "meters": 232.844, "caption": "An ocean of penlights filling the stands"}, {"p": 0.16667, "meters": 151.391, "caption": ""}, {"p": 0.2, "meters": 92.327, "caption": "The full stage, columns of light in the haze"}, {"p": 0.23333, "meters": 52.866, "caption": ""}, {"p": 0.26667, "meters": 27.28, "caption": ""}, {"p": 0.3, "meters": 12.998, "caption": "The band — the ones holding the sound up"}, {"p": 0.33333, "meters": 6.714, "caption": ""}, {"p": 0.36667, "meters": 3.489, "caption": ""}, {"p": 0.4, "meters": 2.128, "caption": "Centre stage, the floor throwing the light back"}, {"p": 0.43333, "meters": 1.099, "caption": ""}, {"p": 0.46667, "meters": 0.663, "caption": ""}, {"p": 0.5, "meters": 0.434, "caption": "Alone in the circle of the spotlight"}, {"p": 0.53333, "meters": 0.299, "caption": ""}, {"p": 0.56667, "meters": 0.213, "caption": ""}, {"p": 0.6, "meters": 0.156, "caption": "Sequins catching the light"}, {"p": 0.63333, "meters": 0.117, "caption": ""}, {"p": 0.66667, "meters": 0.089, "caption": ""}, {"p": 0.7, "meters": 0.07, "caption": "Head and shoulders, the hand around the microphone"}, {"p": 0.73333, "meters": 0.056, "caption": ""}, {"p": 0.76667, "meters": 0.046, "caption": ""}, {"p": 0.8, "meters": 0.041, "caption": "Singing — the instant the note leaves her"}, {"p": 0.83333, "meters": 0.036, "caption": ""}, {"p": 0.86667, "meters": 0.033, "caption": ""}, {"p": 0.9, "meters": 0.032, "caption": "Eyelid, lashes, the tear tracing her cheek"}, {"p": 0.93333, "meters": 0.031, "caption": ""}, {"p": 0.96667, "meters": 0.03, "caption": ""}, {"p": 1.0, "meters": 0.03, "caption": "The eye — a whole night reflected, and a single tear"}];
-const REVERSE = true;
+const MARKS   = [{"p": 0.0, "meters": 0.03, "caption": "The eye — a whole night reflected, and a single tear"}, {"p": 0.03333, "meters": 0.03, "caption": ""}, {"p": 0.06667, "meters": 0.031, "caption": ""}, {"p": 0.1, "meters": 0.032, "caption": "Eyelid, lashes, the tear tracing her cheek"}, {"p": 0.13333, "meters": 0.033, "caption": ""}, {"p": 0.16667, "meters": 0.036, "caption": ""}, {"p": 0.2, "meters": 0.041, "caption": "Singing — the instant the note leaves her"}, {"p": 0.23333, "meters": 0.046, "caption": ""}, {"p": 0.26667, "meters": 0.056, "caption": ""}, {"p": 0.3, "meters": 0.07, "caption": "Head and shoulders, the hand around the microphone"}, {"p": 0.33333, "meters": 0.089, "caption": ""}, {"p": 0.36667, "meters": 0.117, "caption": ""}, {"p": 0.4, "meters": 0.156, "caption": "Sequins catching the light"}, {"p": 0.43333, "meters": 0.213, "caption": ""}, {"p": 0.46667, "meters": 0.299, "caption": ""}, {"p": 0.5, "meters": 0.434, "caption": "Alone in the circle of the spotlight"}, {"p": 0.53333, "meters": 0.663, "caption": ""}, {"p": 0.56667, "meters": 1.099, "caption": ""}, {"p": 0.6, "meters": 2.128, "caption": "Centre stage, the floor throwing the light back"}, {"p": 0.63333, "meters": 3.489, "caption": ""}, {"p": 0.66667, "meters": 6.714, "caption": ""}, {"p": 0.7, "meters": 12.998, "caption": "The band — the ones holding the sound up"}, {"p": 0.73333, "meters": 27.28, "caption": ""}, {"p": 0.76667, "meters": 52.866, "caption": ""}, {"p": 0.8, "meters": 92.327, "caption": "The full stage, columns of light in the haze"}, {"p": 0.83333, "meters": 151.391, "caption": ""}, {"p": 0.86667, "meters": 232.844, "caption": "An ocean of penlights filling the stands"}, {"p": 0.9, "meters": 324.057, "caption": ""}, {"p": 0.93333, "meters": 418.202, "caption": "Japan National Stadium"}, {"p": 0.96667, "meters": 478.87, "caption": ""}, {"p": 1.0, "meters": 492.0, "caption": "Fireworks over Tokyo at night"}];
+const REVERSE = false;
 const FPS     = 24;
 
 const vid  = document.getElementById('vid');
@@ -167,7 +167,71 @@ const EASE = reduce ? 1 : (isTouch ? 0.24 : 0.16);
 
 const scroller = document.getElementById('scroller');
 const track    = document.getElementById('track');
+const hintEl   = document.getElementById('hint');
 const TRACK_MULT = 9;   // screens of scrolling for the whole clip
+
+/* ---------- eased scrolling ----------
+   A wheel notch is a discrete jump — roughly 100px arriving in one event with
+   nothing in between — so native scrolling moves a scrubbed film in steps.
+   Here the wheel only moves a *target*; the position that actually drives the
+   film is carried to that target by a critically damped spring. It leaves rest
+   gradually and arrives without overshoot, which is the ease-in-out this needs,
+   and it keeps easing while new input arrives instead of restarting a curve.
+   Touch is left alone: the platform's own momentum scrolling is better than
+   anything reimplemented here. */
+const FINE   = !coarse && !reduce;
+const SPRING = 11;                    // rad/s — higher is tighter, lower is floatier
+let sPos = 0, sTarget = 0, sVel = 0, sRaf = 0, sLast = 0, curP = 0;
+
+function kick(){
+  if(!sRaf){ sLast = performance.now(); sRaf = requestAnimationFrame(sTick); }
+}
+function sTick(now){
+  sRaf = 0;
+  let dt = (now - sLast) / 1000;
+  sLast = now;
+  if(dt > 0.05) dt = 0.05;            // a stalled tab must not fling the spring
+  if(dt <= 0)   dt = 1/60;
+  sVel += (-SPRING * SPRING * (sPos - sTarget) - 2 * SPRING * sVel) * dt;
+  sPos += sVel * dt;
+  const m = maxScroll();
+  if(sPos < 0){ sPos = 0; sVel = 0; }
+  if(sPos > m){ sPos = m; sVel = 0; }
+  if(Math.abs(sTarget - sPos) < 0.35 && Math.abs(sVel) < 8){ sPos = sTarget; sVel = 0; }
+  else kick();
+  scroller.scrollTop = sPos;
+  apply();
+}
+function wheelDelta(e){
+  let d = e.deltaY;
+  if(e.deltaMode === 1)      d *= 16;                      // lines
+  else if(e.deltaMode === 2) d *= scroller.clientHeight;   // pages
+  return d;
+}
+scroller.addEventListener('wheel', e => {
+  if(!FINE || !started) return;
+  e.preventDefault();
+  sTarget = clamp(sTarget + wheelDelta(e), 0, maxScroll());
+  kick();
+}, {passive:false});
+
+addEventListener('keydown', e => {
+  if(!started || e.metaKey || e.ctrlKey || e.altKey) return;
+  const h = scroller.clientHeight, m = maxScroll();
+  let d = null;
+  switch(e.key){
+    case 'ArrowDown':  d =  h * 0.12; break;
+    case 'ArrowUp':    d = -h * 0.12; break;
+    case 'PageDown': case ' ': d =  h * 0.85; break;
+    case 'PageUp':     d = -h * 0.85; break;
+    case 'Home':       d = -m; break;
+    case 'End':        d =  m; break;
+  }
+  if(d === null) return;
+  e.preventDefault();
+  if(FINE){ sTarget = clamp(sTarget + d, 0, m); kick(); }
+  else { scroller.scrollTop = clamp(scroller.scrollTop + d, 0, m); }
+});
 
 function maxScroll(){ return scroller.scrollHeight - scroller.clientHeight; }
 function layout(){
@@ -175,13 +239,8 @@ function layout(){
   track.style.height = Math.round(scroller.clientHeight * TRACK_MULT) + 'px';
   const m = maxScroll();
   if(m > 0) scroller.scrollTop = prev * m;
+  sPos = sTarget = scroller.scrollTop; sVel = 0;
 }
-function progress(){
-  const m = maxScroll();
-  return m > 0 ? clamp(scroller.scrollTop / m, 0, 1) : 0;
-}
-layout();
-addEventListener('orientationchange', ()=>setTimeout(()=>{ layout(); onScroll(); }, 250));
 
 /* ---------- readout ---------- */
 function fmt(m){
@@ -218,9 +277,15 @@ vid.addEventListener('seeked',  ()=>{ seeking = false; schedule(); });
 
 function tick(){
   raf = 0;
-  const d = targetT - curT;
-  if(Math.abs(d) > 0.0015){ curT += d * EASE; schedule(); }
-  else curT = targetT;
+  /* On a fine pointer the easing has already happened on the scroll position,
+     so the film follows it exactly; a second filter here would only add lag.
+     Touch scrolling arrives raw from the platform, so it is smoothed here. */
+  if(FINE){ curT = targetT; }
+  else {
+    const d = targetT - curT;
+    if(Math.abs(d) > 0.0015){ curT += d * EASE; schedule(); }
+    else curT = targetT;
+  }
   /* Snap to the centre of a real frame. Requesting arbitrary timestamps makes
      the decoder flip between neighbouring frames while the eased value settles,
      which reads as a shimmer. One seek per frame boundary, and none at rest. */
@@ -231,20 +296,33 @@ function tick(){
       vid.currentTime = clamp((n + 0.5) / FPS, 0, dur - 0.001);
     }
   }
-  chrome(progress());
+  chrome(curP);
 }
 function schedule(){ if(!raf) raf = requestAnimationFrame(tick); }
 
 let hinted = false;
-function onScroll(){
-  const p = progress();
+/* One place turns a scroll position into a film time. */
+function apply(){
+  const m = maxScroll();
+  const p = m > 0 ? clamp(sPos / m, 0, 1) : 0;
+  curP = p;
   targetT = (REVERSE ? (1 - p) : p) * dur;
   schedule();
-  if(!hinted && p > 0.01){ hinted = true; document.getElementById('hint').classList.add('gone'); }
+  if(!hinted && p > 0.01){ hinted = true; hintEl.classList.add('gone'); }
+}
+function onScroll(){
+  /* Scroll events we caused ourselves are ignored; anything else — a scrollbar
+     drag, a touch flick, a trackpad on a browser that scrolls natively — takes
+     over the spring so the two can never fight. */
+  const st = scroller.scrollTop;
+  if(Math.abs(st - sPos) > 1.5){ sPos = sTarget = st; sVel = 0; apply(); }
 }
 scroller.addEventListener('scroll', onScroll, {passive:true});
+
+layout();
+addEventListener('orientationchange', ()=>setTimeout(()=>{ layout(); apply(); }, 250));
 let rsz;
-addEventListener('resize', ()=>{ clearTimeout(rsz); rsz = setTimeout(()=>{ layout(); onScroll(); }, 120); schedule(); });
+addEventListener('resize', ()=>{ clearTimeout(rsz); rsz = setTimeout(()=>{ layout(); apply(); }, 120); schedule(); });
 
 /* ===========================================================
    Loading
@@ -278,7 +356,8 @@ function enter(){
   started = true;
   ready = true;
   document.body.classList.add('live');
-  onScroll();
+  sPos = sTarget = scroller.scrollTop; sVel = 0;
+  apply();
   gate.classList.add('gone');
   setTimeout(()=>{ if(gate.parentNode) gate.remove(); }, 1000);
 }
