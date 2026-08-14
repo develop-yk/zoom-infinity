@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1">
+<title>ENCORE — From the Tokyo night into her eye</title>
+<meta name="description" content="A continuous zoom from fireworks over Tokyo into the eye of a singer on stage at Japan National Stadium.">
+<style>
+  :root{ --fg:#fff; --dim:rgba(255,255,255,.78); --faint:rgba(255,255,255,.45) }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%;overflow:hidden;overscroll-behavior:none}
+  body{background:#000;color:var(--fg);
+    font-family:"Helvetica Neue",Helvetica,Arial,sans-serif;-webkit-font-smoothing:antialiased;
+    -webkit-text-size-adjust:100%}
+  /* The document itself never scrolls, so mobile browsers keep their toolbars
+     at a fixed size and the viewport height stays constant for the whole
+     journey. All scrolling happens inside this fixed, full-screen element. */
+  #scroller{position:fixed;inset:0;z-index:5;overflow-y:auto;overflow-x:hidden;
+            -webkit-overflow-scrolling:touch;overscroll-behavior:contain}
+  #track{width:1px}
+  #stage{position:fixed;inset:0;overflow:hidden;background:#000;z-index:0}
+  #vid{position:absolute;left:0;top:0;width:100%;height:100%;object-fit:cover;
+       pointer-events:none;background:#000;display:block}
+
+  .ui{position:fixed;z-index:10;pointer-events:none;opacity:0;transition:opacity 1.1s ease .25s;
+      text-shadow:0 1px 14px rgba(0,0,0,.8),0 0 2px rgba(0,0,0,.7)}
+  body.live .ui{opacity:1}
+  #title{top:0;left:0;padding:26px 30px;max-width:min(58vw,540px)}
+  #title h1{font-size:clamp(12px,1.35vw,17px);font-weight:600;letter-spacing:.14em;
+    text-transform:uppercase;line-height:1.45}
+  #title p{margin-top:8px;font-size:11.5px;letter-spacing:.05em;color:var(--dim);line-height:1.6}
+
+  #readout{bottom:0;left:0;padding:26px 30px}
+  #scaleNum{font-size:clamp(28px,5.2vw,58px);font-weight:200;letter-spacing:-.02em;
+    font-variant-numeric:tabular-nums;line-height:1}
+  #scaleNum span{font-size:.42em;font-weight:400;letter-spacing:.1em;margin-left:.35em;color:var(--dim)}
+  #caption{margin-top:12px;font-size:12.5px;letter-spacing:.04em;color:var(--dim);
+    max-width:min(70vw,460px);line-height:1.6;min-height:2.6em;transition:opacity .5s ease}
+
+  #hint{bottom:0;right:0;padding:26px 30px;font-size:11px;letter-spacing:.13em;
+    color:var(--faint);text-transform:uppercase;transition:opacity .8s ease}
+  #hint.gone{opacity:0}
+  #bar{position:fixed;left:0;right:0;bottom:0;height:2px;background:rgba(255,255,255,.1);z-index:11;
+       opacity:0;transition:opacity 1.1s ease .25s}
+  body.live #bar{opacity:1}
+  #barFill{height:100%;width:0;background:#fff;opacity:.7}
+
+  /* ---------- loading gate ----------
+     Nothing starts until the whole clip is in the browser. A scroll-scrubbed
+     film cannot stream: the viewer jumps to arbitrary timestamps, so a partly
+     downloaded file would stall on every seek. The gate holds until the last
+     byte has arrived and the first frame has been decoded. */
+  #gate{position:fixed;inset:0;z-index:99;background:#000;
+        display:flex;flex-direction:column;align-items:center;justify-content:center;
+        padding:32px;text-align:center;transition:opacity .9s ease}
+  #gate.gone{opacity:0;pointer-events:none}
+
+  .loader{position:relative;width:116px;height:116px}
+  #ring{width:100%;height:100%;transform:rotate(-90deg)}
+  #ring circle{fill:none;stroke-width:1.4;stroke-linecap:round}
+  #ring .bg{stroke:rgba(255,255,255,.13)}
+  #ring .fg{stroke:#fff;stroke-dasharray:339.292;stroke-dashoffset:339.292;
+            transition:stroke-dashoffset .4s cubic-bezier(.22,1,.36,1)}
+  /* before the file size is known, the arc just sweeps */
+  #ring.spin{animation:sweep 1.5s linear infinite}
+  #ring.spin .fg{stroke-dasharray:58 282;stroke-dashoffset:0;transition:none}
+  @keyframes sweep{from{transform:rotate(-90deg)}to{transform:rotate(270deg)}}
+
+  /* number and unit share one baseline; a bare text node would become its
+     own grid item and drop the % onto a second line */
+  .num{position:absolute;inset:0;display:grid;grid-auto-flow:column;
+       justify-content:center;align-content:center;align-items:baseline;
+       font-size:20px;font-weight:200;letter-spacing:.01em;font-variant-numeric:tabular-nums}
+  .num i{font-style:normal}
+  .num span{font-size:.52em;font-weight:400;color:var(--faint);margin-left:2px}
+  .num.done{opacity:0;transition:opacity .5s ease}
+
+  #gateLbl{margin-top:28px;font-size:10.5px;letter-spacing:.34em;text-transform:uppercase;
+           color:var(--faint);animation:breathe 2.6s ease-in-out infinite}
+  #gateLbl.still{animation:none;color:var(--dim)}
+  @keyframes breathe{0%,100%{opacity:.45}50%{opacity:1}}
+  #gateSub{margin-top:10px;font-size:10px;letter-spacing:.16em;color:rgba(255,255,255,.28);
+           font-variant-numeric:tabular-nums;min-height:1.2em}
+  #gateBtn{margin-top:26px;font-size:11px;letter-spacing:.22em;text-transform:uppercase;
+    color:#fff;background:none;font-family:inherit;
+    border:1px solid rgba(255,255,255,.45);border-radius:999px;
+    padding:14px 32px;display:none;cursor:pointer;-webkit-tap-highlight-color:transparent;
+    transition:background .3s ease,border-color .3s ease;animation:rise .7s ease both}
+  #gateBtn:hover{background:rgba(255,255,255,.1);border-color:#fff}
+  @keyframes rise{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+
+  @media (max-width:680px){
+    #title{padding:16px 18px;max-width:78vw}
+    #title h1{font-size:12px;letter-spacing:.1em}
+    #title p{font-size:10.5px}
+    #readout{padding:16px 18px}
+    #caption{max-width:82vw;font-size:11px;min-height:3.2em}
+    #hint{padding:16px 18px;font-size:9.5px}
+    .loader{width:96px;height:96px}
+  }
+  @media (prefers-reduced-motion:reduce){
+    #gateLbl{animation:none} #ring.spin{animation-duration:3s}
+  }
+</style>
+</head>
+<body>
+<div id="stage">
+  <video id="vid" muted playsinline webkit-playsinline preload="auto"
+         disablepictureinpicture disableremoteplayback x5-playsinline></video>
+</div>
+<div id="scroller"><div id="track"></div></div>
+
+<div class="ui" id="title"><h1>ENCORE — From the Tokyo night into her eye</h1><p>One continuous shot, scrubbed by your scroll</p></div>
+<div class="ui" id="readout"><div id="scaleNum">—</div><div id="caption"></div></div>
+<div class="ui" id="hint">scroll to descend</div>
+<div id="bar"><div id="barFill"></div></div>
+
+<div id="gate">
+  <div class="loader">
+    <svg id="ring" viewBox="0 0 120 120" aria-hidden="true">
+      <circle class="bg" cx="60" cy="60" r="54"></circle>
+      <circle class="fg" id="arc" cx="60" cy="60" r="54"></circle>
+    </svg>
+    <div class="num" id="gatePct"><i>0</i><span>%</span></div>
+  </div>
+  <div id="gateLbl">Loading</div>
+  <div id="gateSub"></div>
+  <button id="gateBtn" type="button">Begin</button>
+</div>
+
+<script>
+/* ===========================================================
+   Scroll-scrubbed zoom.
+   Scroll position maps straight to playback time — the frame you
+   see is always a real frame of the clip, never a transformed or
+   synthesised one. The clip zooms OUT (eye -> stadium) and the
+   journey is the reverse, so scrolling forward runs time backwards.
+   =========================================================== */
+const SRC_DESKTOP = "zoom.mp4";
+const SRC_MOBILE  = "zoom-mobile.mp4";
+const MARKS   = [{"p": 0.0, "meters": 492.0, "caption": "Fireworks over Tokyo at night"}, {"p": 0.03333, "meters": 478.87, "caption": ""}, {"p": 0.06667, "meters": 418.202, "caption": "Japan National Stadium"}, {"p": 0.1, "meters": 324.057, "caption": ""}, {"p": 0.13333, "meters": 232.844, "caption": "An ocean of penlights filling the stands"}, {"p": 0.16667, "meters": 151.391, "caption": ""}, {"p": 0.2, "meters": 92.327, "caption": "The full stage, columns of light in the haze"}, {"p": 0.23333, "meters": 52.866, "caption": ""}, {"p": 0.26667, "meters": 27.28, "caption": ""}, {"p": 0.3, "meters": 12.998, "caption": "The band — the ones holding the sound up"}, {"p": 0.33333, "meters": 6.714, "caption": ""}, {"p": 0.36667, "meters": 3.489, "caption": ""}, {"p": 0.4, "meters": 2.128, "caption": "Centre stage, the floor throwing the light back"}, {"p": 0.43333, "meters": 1.099, "caption": ""}, {"p": 0.46667, "meters": 0.663, "caption": ""}, {"p": 0.5, "meters": 0.434, "caption": "Alone in the circle of the spotlight"}, {"p": 0.53333, "meters": 0.299, "caption": ""}, {"p": 0.56667, "meters": 0.213, "caption": ""}, {"p": 0.6, "meters": 0.156, "caption": "Sequins catching the light"}, {"p": 0.63333, "meters": 0.117, "caption": ""}, {"p": 0.66667, "meters": 0.089, "caption": ""}, {"p": 0.7, "meters": 0.07, "caption": "Head and shoulders, the hand around the microphone"}, {"p": 0.73333, "meters": 0.056, "caption": ""}, {"p": 0.76667, "meters": 0.046, "caption": ""}, {"p": 0.8, "meters": 0.041, "caption": "Singing — the instant the note leaves her"}, {"p": 0.83333, "meters": 0.036, "caption": ""}, {"p": 0.86667, "meters": 0.033, "caption": ""}, {"p": 0.9, "meters": 0.032, "caption": "Eyelid, lashes, the tear tracing her cheek"}, {"p": 0.93333, "meters": 0.031, "caption": ""}, {"p": 0.96667, "meters": 0.03, "caption": ""}, {"p": 1.0, "meters": 0.03, "caption": "The eye — a whole night reflected, and a single tear"}];
+const REVERSE = true;
+const FPS     = 24;
+
+const vid  = document.getElementById('vid');
+const gate = document.getElementById('gate');
+const gLbl = document.getElementById('gateLbl');
+const gSub = document.getElementById('gateSub');
+const gBtn = document.getElementById('gateBtn');
+const gPct = document.getElementById('gatePct');
+const ring = document.getElementById('ring');
+const arc  = document.getElementById('arc');
+
+/* Two separate questions, which an earlier version conflated:
+   which file to download (a matter of screen size) and whether a user
+   gesture is required before the video can be decoded (a matter of the
+   input device). A 1280x800 laptop is not a phone. */
+const coarse  = matchMedia('(pointer:coarse)').matches;
+const isTouch = coarse;
+const useSmall = coarse || innerWidth <= 900;
+const SRC     = (useSmall && SRC_MOBILE) ? SRC_MOBILE : SRC_DESKTOP;
+
+let dur = 0, targetT = 0, curT = 0, raf = 0, ready = false, seeking = false, shownFrame = -1;
+const clamp = (v,a,b)=>v<a?a:v>b?b:v;
+const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const EASE = reduce ? 1 : (isTouch ? 0.24 : 0.16);
+
+const scroller = document.getElementById('scroller');
+const track    = document.getElementById('track');
+const TRACK_MULT = 9;   // screens of scrolling for the whole clip
+
+function maxScroll(){ return scroller.scrollHeight - scroller.clientHeight; }
+function layout(){
+  const prev = maxScroll() > 0 ? scroller.scrollTop / maxScroll() : 0;
+  track.style.height = Math.round(scroller.clientHeight * TRACK_MULT) + 'px';
+  const m = maxScroll();
+  if(m > 0) scroller.scrollTop = prev * m;
+}
+function progress(){
+  const m = maxScroll();
+  return m > 0 ? clamp(scroller.scrollTop / m, 0, 1) : 0;
+}
+layout();
+addEventListener('orientationchange', ()=>setTimeout(()=>{ layout(); onScroll(); }, 250));
+
+/* ---------- readout ---------- */
+function fmt(m){
+  if(m < 0.01) return [(m*1000).toFixed(0),'mm'];
+  if(m < 1)    return [(m*100).toPrecision(2).replace(/\.0$/,''),'cm'];
+  if(m < 1000) return [m < 10 ? m.toFixed(1) : m.toFixed(0),'m'];
+  return [(m/1000).toPrecision(m/1000 < 10 ? 2 : 3),'km'];
+}
+const scaleNum = document.getElementById('scaleNum');
+const capEl    = document.getElementById('caption');
+const barFill  = document.getElementById('barFill');
+let lastCap = null;
+
+function chrome(p){
+  let i = 0;
+  while(i < MARKS.length-2 && MARKS[i+1].p < p) i++;
+  const a = MARKS[i], b = MARKS[Math.min(i+1, MARKS.length-1)];
+  const f = b.p > a.p ? clamp((p - a.p)/(b.p - a.p), 0, 1) : 0;
+  const m = a.meters * Math.pow(b.meters/a.meters, f);
+  const [v,u] = fmt(m);
+  scaleNum.innerHTML = v + '<span>' + u + '</span>';
+  const near = f < 0.5 ? a : b;
+  if(near.caption && near.caption !== lastCap){
+    lastCap = near.caption;
+    capEl.style.opacity = 0;
+    setTimeout(()=>{ capEl.textContent = near.caption; capEl.style.opacity = 1; }, 200);
+  }
+  barFill.style.width = (p*100).toFixed(2) + '%';
+}
+
+/* ---------- scrub loop ---------- */
+vid.addEventListener('seeking', ()=>{ seeking = true; });
+vid.addEventListener('seeked',  ()=>{ seeking = false; schedule(); });
+
+function tick(){
+  raf = 0;
+  const d = targetT - curT;
+  if(Math.abs(d) > 0.0015){ curT += d * EASE; schedule(); }
+  else curT = targetT;
+  /* Snap to the centre of a real frame. Requesting arbitrary timestamps makes
+     the decoder flip between neighbouring frames while the eased value settles,
+     which reads as a shimmer. One seek per frame boundary, and none at rest. */
+  if(ready && dur && !seeking){
+    const n = clamp(Math.round(curT * FPS), 0, Math.round(dur * FPS) - 1);
+    if(n !== shownFrame){
+      shownFrame = n;
+      vid.currentTime = clamp((n + 0.5) / FPS, 0, dur - 0.001);
+    }
+  }
+  chrome(progress());
+}
+function schedule(){ if(!raf) raf = requestAnimationFrame(tick); }
+
+let hinted = false;
+function onScroll(){
+  const p = progress();
+  targetT = (REVERSE ? (1 - p) : p) * dur;
+  schedule();
+  if(!hinted && p > 0.01){ hinted = true; document.getElementById('hint').classList.add('gone'); }
+}
+scroller.addEventListener('scroll', onScroll, {passive:true});
+let rsz;
+addEventListener('resize', ()=>{ clearTimeout(rsz); rsz = setTimeout(()=>{ layout(); onScroll(); }, 120); schedule(); });
+
+/* ===========================================================
+   Loading
+   ===========================================================
+   The film is fetched in full before anything is shown. Two reasons:
+   a scrubbed video seeks constantly, and seeking into a range the
+   browser has not downloaded stalls the picture; and a progressive
+   <video> gives no honest measure of how much is actually there.
+   Reading the body as a stream gives byte-accurate progress, and the
+   finished blob guarantees every frame is local before the first
+   scroll. If fetch is unavailable the code falls back to ordinary
+   streaming and reports buffered ranges instead. */
+const C = 2 * Math.PI * 54;
+let pctShown = -1;
+function setPct(p){
+  p = clamp(p, 0, 1);
+  arc.style.strokeDashoffset = (C * (1 - p)).toFixed(2);
+  const n = Math.floor(p * 100);
+  if(n !== pctShown){ pctShown = n; gPct.innerHTML = '<i>' + n + '</i><span>%</span>'; }
+}
+function mb(b){ return (b / 1048576).toFixed(1) + ' MB'; }
+/* Until the first bytes arrive there is nothing honest to show as a
+   percentage, so the arc simply sweeps. */
+function determinate(){ ring.classList.remove('spin'); }
+ring.classList.add('spin');
+setPct(0);
+
+let started = false;   // the experience is running
+function enter(){
+  if(started) return;
+  started = true;
+  ready = true;
+  document.body.classList.add('live');
+  onScroll();
+  gate.classList.add('gone');
+  setTimeout(()=>{ if(gate.parentNode) gate.remove(); }, 1000);
+}
+
+/* Decode and hold the first frame the visitor will actually see, so the
+   gate never lifts onto an empty black screen. */
+function prime(done){
+  dur = vid.duration || 0;
+  if(!dur || !isFinite(dur)){ done(false); return; }
+  curT = targetT = REVERSE ? dur : 0;
+  const n = clamp(Math.round(curT * FPS), 0, Math.round(dur * FPS) - 1);
+  shownFrame = n;
+  let fired = false;
+  const fin = ok => { if(fired) return; fired = true; vid.removeEventListener('seeked', fin); done(ok); };
+  vid.addEventListener('seeked', fin);
+  try{ vid.currentTime = clamp((n + 0.5) / FPS, 0, dur - 0.001); }
+  catch(e){ fin(false); return; }
+  setTimeout(()=>fin(false), 3000);
+}
+
+function armButton(label){
+  gLbl.textContent = label || 'Ready';
+  gLbl.classList.add('still');
+  gPct.classList.add('done');
+  setPct(1);
+  gSub.textContent = '';
+  gBtn.style.display = 'inline-block';
+}
+
+/* iOS will not decode or seek a video until a real user gesture. */
+function unlock(){
+  const p = vid.play();
+  const after = ()=>{ try{ vid.pause(); }catch(e){} prime(()=>enter()); };
+  if(p && p.then) p.then(after).catch(after); else after();
+}
+gBtn.addEventListener('click', unlock);
+
+function whenDecodable(cb){
+  if(vid.readyState >= 2){ cb(); return; }
+  let fired = false;
+  const go = ()=>{ if(fired) return; fired = true; cb(); };
+  ['loadedmetadata','loadeddata','canplay','canplaythrough'].forEach(e=>vid.addEventListener(e, go));
+  setTimeout(go, 8000);
+}
+
+/* Everything is in the browser — decode the first frame, then open. */
+function onFileReady(){
+  gLbl.textContent = 'Preparing';
+  gSub.textContent = '';
+  determinate();
+  setPct(1);
+  vid.load();
+  whenDecodable(()=>{
+    if(isTouch){ armButton('Ready'); }        // a tap is required before seeking
+    else prime(ok => enter());
+  });
+}
+
+async function download(){
+  if(!('fetch' in window) || !('body' in Response.prototype)) return streamFallback();
+  try{
+    const res = await fetch(SRC, {cache:'force-cache'});
+    if(!res.ok || !res.body) throw new Error('http ' + res.status);
+    const total = +res.headers.get('content-length') || 0;
+    const reader = res.body.getReader();
+    const chunks = [];
+    let got = 0;
+    for(;;){
+      const r = await reader.read();
+      if(r.done) break;
+      chunks.push(r.value);
+      got += r.value.length;
+      if(total){ determinate(); setPct(got / total); gSub.textContent = mb(got) + ' / ' + mb(total); }
+      else gSub.textContent = mb(got);
+    }
+    determinate();
+    vid.src = URL.createObjectURL(new Blob(chunks, {type:'video/mp4'}));
+    onFileReady();
+  }catch(e){
+    determinate();
+    streamFallback();
+  }
+}
+
+/* Fallback: ordinary progressive load, progress read from buffered ranges. */
+function streamFallback(){
+  vid.src = SRC;
+  const poll = setInterval(()=>{
+    let p = 0;
+    try{
+      if(vid.buffered.length && vid.duration)
+        p = vid.buffered.end(vid.buffered.length - 1) / vid.duration;
+    }catch(e){}
+    if(p > 0) determinate();
+    setPct(p);
+    if(p > 0.995){ clearInterval(poll); onFileReady(); }
+  }, 250);
+  vid.load();
+  // never strand the visitor if the browser refuses to buffer ahead
+  setTimeout(()=>{ if(!started){ clearInterval(poll); armButton('Begin'); } }, 45000);
+}
+
+download();
+</script>
+</body>
+</html>
