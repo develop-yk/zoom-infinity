@@ -16,7 +16,11 @@
      at a fixed size and the viewport height stays constant for the whole
      journey. All scrolling happens inside this fixed, full-screen element. */
   #scroller{position:fixed;inset:0;z-index:5;overflow-y:auto;overflow-x:hidden;
-            -webkit-overflow-scrolling:touch;overscroll-behavior:contain}
+            -webkit-overflow-scrolling:touch;overscroll-behavior:contain;
+            scrollbar-width:none}
+  /* the bar along the bottom already reports position; a second, unstyled
+     scrollbar over the picture only breaks the frame */
+  #scroller::-webkit-scrollbar{width:0;height:0;display:none}
   #track{width:1px}
   #stage{position:fixed;inset:0;overflow:hidden;background:#000;z-index:0}
   #vid{position:absolute;left:0;top:0;width:100%;height:100%;object-fit:cover;
@@ -180,7 +184,11 @@ const TRACK_MULT = 9;   // screens of scrolling for the whole clip
    Touch is left alone: the platform's own momentum scrolling is better than
    anything reimplemented here. */
 const FINE   = !coarse && !reduce;
-const SPRING = 11;                    // rad/s — higher is tighter, lower is floatier
+/* rad/s. Lower means a longer, more pronounced glide: the ramp in and out of
+   motion is what carries the film, so this is deliberately loose. Around 11 is
+   "tight and app-like"; 6.5 gives roughly a second of travel per gesture. */
+const SPRING = 6.5;
+const WHEEL  = 1.25;                  // the softer the spring, the more reach a notch needs
 let sPos = 0, sTarget = 0, sVel = 0, sRaf = 0, sLast = 0, curP = 0;
 
 function kick(){
@@ -208,10 +216,13 @@ function wheelDelta(e){
   else if(e.deltaMode === 2) d *= scroller.clientHeight;   // pages
   return d;
 }
-scroller.addEventListener('wheel', e => {
-  if(!FINE || !started) return;
+/* Bound to the window, not the scroller: the progress bar sits above the
+   scroller and would otherwise swallow the wheel along the bottom edge.
+   ctrl+wheel is the browser's zoom gesture and is left alone. */
+addEventListener('wheel', e => {
+  if(!FINE || !started || e.ctrlKey) return;
   e.preventDefault();
-  sTarget = clamp(sTarget + wheelDelta(e), 0, maxScroll());
+  sTarget = clamp(sTarget + wheelDelta(e) * WHEEL, 0, maxScroll());
   kick();
 }, {passive:false});
 
@@ -363,19 +374,39 @@ function enter(){
 }
 
 /* Decode and hold the first frame the visitor will actually see, so the
-   gate never lifts onto an empty black screen. */
+   gate never lifts onto an empty black screen. Landing the seek is also the
+   proof that this browser will let us scrub at all. */
 function prime(done){
   dur = vid.duration || 0;
   if(!dur || !isFinite(dur)){ done(false); return; }
   curT = targetT = REVERSE ? dur : 0;
   const n = clamp(Math.round(curT * FPS), 0, Math.round(dur * FPS) - 1);
   shownFrame = n;
-  let fired = false;
-  const fin = ok => { if(fired) return; fired = true; vid.removeEventListener('seeked', fin); done(ok); };
-  vid.addEventListener('seeked', fin);
-  try{ vid.currentTime = clamp((n + 0.5) / FPS, 0, dur - 0.001); }
+  const t = clamp((n + 0.5) / FPS, 0, dur - 0.001);
+  if(Math.abs(vid.currentTime - t) < 1e-4){ done(true); return; }   // already there
+  let fired = false, onSeeked;
+  const fin = ok => { if(fired) return; fired = true; vid.removeEventListener('seeked', onSeeked); done(ok); };
+  onSeeked = ()=>fin(true);
+  vid.addEventListener('seeked', onSeeked);
+  try{ vid.currentTime = t; }
   catch(e){ fin(false); return; }
   setTimeout(()=>fin(false), 3000);
+}
+
+/* Mobile browsers gate media decoding behind a user gesture — but a muted,
+   inline video is exempt, so starting and immediately pausing it unlocks
+   decoding and seeking with no tap required. If the platform refuses (iOS in
+   Low Power Mode is the usual case) we carry on anyway: the file is already
+   in memory, so the seek often still lands. Only when the seek itself never
+   arrives does the visitor get asked for a tap. */
+function nudge(next){
+  let fired = false;
+  const go = ()=>{ if(fired) return; fired = true; next(); };
+  let p;
+  try{ p = vid.play(); }catch(e){ go(); return; }
+  if(p && p.then) p.then(()=>{ try{ vid.pause(); }catch(e){} go(); }).catch(go);
+  else { try{ vid.pause(); }catch(e){} go(); }
+  setTimeout(go, 1200);            // never hang on a promise that never settles
 }
 
 function armButton(label){
@@ -403,16 +434,27 @@ function whenDecodable(cb){
   setTimeout(go, 8000);
 }
 
-/* Everything is in the browser — decode the first frame, then open. */
-function onFileReady(){
+/* Duration can arrive late, or change when a blob replaces a stream. Keep it
+   current, and recover if the gate opened before it was known. */
+vid.addEventListener('durationchange', ()=>{
+  const d = vid.duration;
+  if(!d || !isFinite(d)) return;
+  const was = dur;
+  dur = d;
+  if(started && !was){ shownFrame = -1; apply(); }
+});
+
+/* Everything is in the browser — decode the first frame, then open.
+   `reload` is false when the file arrived through the <video> element itself:
+   calling load() there would throw the buffer away and download it twice. */
+function onFileReady(reload){
   gLbl.textContent = 'Preparing';
   gSub.textContent = '';
   determinate();
   setPct(1);
-  vid.load();
+  if(reload !== false) vid.load();
   whenDecodable(()=>{
-    if(isTouch){ armButton('Ready'); }        // a tap is required before seeking
-    else prime(ok => enter());
+    nudge(()=> prime(ok => ok ? enter() : armButton('Ready')));
   });
 }
 
@@ -445,6 +487,8 @@ async function download(){
 /* Fallback: ordinary progressive load, progress read from buffered ranges. */
 function streamFallback(){
   vid.src = SRC;
+  let best = 0, lastGrowth = performance.now(), closed = false;
+  const finish = ()=>{ if(closed) return; closed = true; clearInterval(poll); onFileReady(false); };
   const poll = setInterval(()=>{
     let p = 0;
     try{
@@ -453,11 +497,15 @@ function streamFallback(){
     }catch(e){}
     if(p > 0) determinate();
     setPct(p);
-    if(p > 0.995){ clearInterval(poll); onFileReady(); }
+    const now = performance.now();
+    if(p > best + 0.001){ best = p; lastGrowth = now; }
+    /* Browsers decide for themselves how far ahead to buffer and often stop
+       early — waiting for 100% would wait forever. Once the file has clearly
+       stopped arriving, there is nothing left to wait for. */
+    if(p > 0.995 || (vid.readyState >= 3 && now - lastGrowth > 2500)) finish();
   }, 250);
   vid.load();
-  // never strand the visitor if the browser refuses to buffer ahead
-  setTimeout(()=>{ if(!started){ clearInterval(poll); armButton('Begin'); } }, 45000);
+  setTimeout(finish, 30000);        // never strand the visitor
 }
 
 download();
