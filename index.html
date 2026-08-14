@@ -81,6 +81,11 @@
         display:flex;flex-direction:column;align-items:center;justify-content:center;
         padding:32px;text-align:center;transition:opacity .9s ease}
   #gate.gone{opacity:0;pointer-events:none}
+  /* The wait can be held on plain black instead. The gate still blocks until
+     the whole clip has arrived; only the indicator is hidden. The fallback
+     button is kept, since without it a browser that refuses to decode
+     unprompted would leave no way in. */
+  #gate.bare .loader,#gate.bare #gateLbl,#gate.bare #gateSub{display:none}
 
   .loader{position:relative;width:116px;height:116px}
   #ring{width:100%;height:100%;transform:rotate(-90deg)}
@@ -177,6 +182,8 @@ const gBtn = document.getElementById('gateBtn');
 const gPct = document.getElementById('gatePct');
 const ring = document.getElementById('ring');
 const arc  = document.getElementById('arc');
+const SHOW_LOADER = false;
+if(!SHOW_LOADER) gate.classList.add('bare');
 
 /* Two separate questions, which an earlier version conflated:
    which file to download (a matter of screen size) and whether a user
