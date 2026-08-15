@@ -53,8 +53,13 @@
       text-shadow:0 1px 14px rgba(0,0,0,.8),0 0 2px rgba(0,0,0,.7)}
   body.live .ui{opacity:1}
   #title{top:0;left:0;padding:26px 30px;max-width:min(58vw,540px)}
+  /* Two deliberate lines rather than a wrapped sentence: the piece's name, then
+     what it is. The second line is set slightly smaller so the eye reads the
+     name first and the break never lands mid-phrase at an awkward width. */
   #title h1{font-size:clamp(12px,1.35vw,17px);font-weight:600;letter-spacing:.14em;
     text-transform:uppercase;line-height:1.45}
+  #title h1 .l1{display:block}
+  #title h1 .l2{display:block;font-size:.84em;letter-spacing:.12em;margin-top:3px}
   #title p{margin-top:8px;font-size:11.5px;letter-spacing:.05em;color:var(--dim);line-height:1.6}
 
   #readout{bottom:0;left:0;padding:26px 30px}
@@ -142,7 +147,10 @@
 </div>
 <div id="scroller"><div id="track"></div></div>
 
-<div class="ui" id="title"><h1>ENCORE — From her eye out into the Tokyo night</h1><p>One continuous shot, scrubbed by your scroll</p></div>
+<div class="ui" id="title">
+  <h1><span class="l1">ENCORE</span><span class="l2">From her eye out into the Tokyo night</span></h1>
+  <p>One continuous shot, scrubbed by your scroll</p>
+</div>
 <div class="ui" id="readout"><div id="scaleNum">—</div><div id="caption"></div></div>
 <div class="ui" id="hint">scroll to pull away</div>
 <div id="bar"><div id="barFill"></div></div>
