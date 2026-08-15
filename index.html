@@ -59,7 +59,10 @@
   #title h1{font-size:clamp(12px,1.35vw,17px);font-weight:600;letter-spacing:.14em;
     text-transform:uppercase;line-height:1.45}
   #title h1 .l1{display:block}
-  #title h1 .l2{display:block;font-size:.84em;letter-spacing:.12em;margin-top:3px}
+  /* Lower case needs less tracking than caps — the wide letter-spacing that
+     holds ENCORE together would pull a sentence apart. */
+  #title h1 .l2{display:block;font-size:.88em;letter-spacing:.05em;margin-top:4px;
+    text-transform:none;font-weight:500}
   #title p{margin-top:8px;font-size:11.5px;letter-spacing:.05em;color:var(--dim);line-height:1.6}
 
   #readout{bottom:0;left:0;padding:26px 30px}
