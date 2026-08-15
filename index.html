@@ -173,7 +173,6 @@ const SRC_MOBILE  = "zoom-mobile.mp4";
 const MARKS   = [{"p": 0.0, "meters": 0.03, "caption": "The eye — a whole night reflected, and a single tear"}, {"p": 0.03333, "meters": 0.03, "caption": ""}, {"p": 0.06667, "meters": 0.031, "caption": ""}, {"p": 0.1, "meters": 0.032, "caption": "Eyelid, lashes, the tear tracing her cheek"}, {"p": 0.13333, "meters": 0.033, "caption": ""}, {"p": 0.16667, "meters": 0.036, "caption": ""}, {"p": 0.2, "meters": 0.041, "caption": "Singing — the instant the note leaves her"}, {"p": 0.23333, "meters": 0.046, "caption": ""}, {"p": 0.26667, "meters": 0.056, "caption": ""}, {"p": 0.3, "meters": 0.07, "caption": "Head and shoulders, the hand around the microphone"}, {"p": 0.33333, "meters": 0.089, "caption": ""}, {"p": 0.36667, "meters": 0.117, "caption": ""}, {"p": 0.4, "meters": 0.156, "caption": "Sequins catching the light"}, {"p": 0.43333, "meters": 0.213, "caption": ""}, {"p": 0.46667, "meters": 0.299, "caption": ""}, {"p": 0.5, "meters": 0.434, "caption": "Alone in the circle of the spotlight"}, {"p": 0.53333, "meters": 0.663, "caption": ""}, {"p": 0.56667, "meters": 1.099, "caption": ""}, {"p": 0.6, "meters": 2.128, "caption": "Centre stage, the floor throwing the light back"}, {"p": 0.63333, "meters": 3.489, "caption": ""}, {"p": 0.66667, "meters": 6.714, "caption": ""}, {"p": 0.7, "meters": 12.998, "caption": "The band — the ones holding the sound up"}, {"p": 0.73333, "meters": 27.28, "caption": ""}, {"p": 0.76667, "meters": 52.866, "caption": ""}, {"p": 0.8, "meters": 92.327, "caption": "The full stage, columns of light in the haze"}, {"p": 0.83333, "meters": 151.391, "caption": ""}, {"p": 0.86667, "meters": 232.844, "caption": "An ocean of penlights filling the stands"}, {"p": 0.9, "meters": 324.057, "caption": ""}, {"p": 0.93333, "meters": 418.202, "caption": "Japan National Stadium"}, {"p": 0.96667, "meters": 478.87, "caption": ""}, {"p": 1.0, "meters": 492.0, "caption": "Fireworks over Tokyo at night"}];
 const REVERSE = false;
 const FPS     = 24;
-const MARK_OFFSET = 7;   // frames; positive delays the readout
 
 const vid  = document.getElementById('vid');
 const gate = document.getElementById('gate');
@@ -297,20 +296,6 @@ const barFill  = document.getElementById('barFill');
 let lastCap = null;
 
 function chrome(p){
-  const scrolled = p;                 // the bar keeps reporting true scroll position
-  /* The readout can be nudged along the timeline independently of the picture.
-     The marks were authored against frame numbers, and a caption that arrives
-     while the previous subject is still on screen reads as an error even when
-     the geometry is right. MARK_OFFSET is in frames; positive means the text
-     arrives that many frames later. */
-  const total = dur ? Math.round(dur * FPS) : 0;
-  if(MARK_OFFSET && total > 1){
-    /* The delay tapers away over the last few frames. A flat shift would push
-       the final mark past the end of the track, so its caption could never
-       appear — the journey would finish on the previous one. */
-    const d = MARK_OFFSET / (total - 1);
-    p = clamp(p - Math.min(d, Math.max(0, 1 - p)), 0, 1);
-  }
   let i = 0;
   while(i < MARKS.length-2 && MARKS[i+1].p < p) i++;
   const a = MARKS[i], b = MARKS[Math.min(i+1, MARKS.length-1)];
@@ -324,7 +309,7 @@ function chrome(p){
     capEl.style.opacity = 0;
     setTimeout(()=>{ capEl.textContent = near.caption; capEl.style.opacity = 1; }, 200);
   }
-  barFill.style.width = (scrolled*100).toFixed(2) + '%';
+  barFill.style.width = (p*100).toFixed(2) + '%';
 }
 
 /* ---------- scrub loop ---------- */
